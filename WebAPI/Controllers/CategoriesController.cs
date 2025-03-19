@@ -10,11 +10,17 @@ using DataAccess;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
 using Microsoft.AspNetCore.OData.Query;
 using DataAccess.Repository;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using DataAccess.DTO;
+using Microsoft.AspNetCore.OData.Formatter;
+using DataAccess.DAO;
 
 namespace WebAPI.Controllers
 {
     [Route("odata/[controller]")]
     [ApiController]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class CategoriesController : ODataController
     {
         private readonly ICategoryRepository _categoryRepository;
@@ -26,59 +32,80 @@ namespace WebAPI.Controllers
 
         // GET: api/Categories
         [HttpGet]
-        [Route("get-all")]
+        [Route("GetAll")]
+        [Authorize(Roles = "Admin")]
         [EnableQuery]
-        public async Task<ActionResult<IEnumerable<Category>>> GetCategories()
+        public IActionResult GetAll()
         {
-            return Ok(await _categoryRepository.GetCategoriesAsync());
-        }
-
-        // GET: api/Categories/5
-        [HttpGet("{id}")]
-        [EnableQuery]
-        public async Task<ActionResult<Category>> GetCategory(int id)
-        {
-            var category = await _categoryRepository.GetCategoryByIdAsync(id);
-
-            if (category == null)
+            if (!User.Identity.IsAuthenticated)
             {
-                return NotFound();
+                return Unauthorized("You are not logged in");
             }
 
-            return category;
-        }
 
-        // PUT: api/Categories/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCategory(int id,[FromBody] Category category)
-        {
-            if (id != category.CategoryID)
+            if (HttpContext.Request.Cookies.TryGetValue("AuthToken", out string token))
             {
-                return BadRequest();
+                Console.WriteLine($"Token from Cookie: {token}");
+            }
+            else
+            {
+                Console.WriteLine("No token found in cookies.");
             }
 
-            await _categoryRepository.UpdateCategoryAsync(category);
+            return Ok(_categoryRepository.GetAll());
 
-            return NoContent();
         }
 
-        // POST: api/Categories
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Category>> AddCategory([FromBody] Category category)
+        [Authorize(Roles = "Admin")]
+        [EnableQuery]
+        [HttpGet("get-by-id")] // GET /odata/Category(1)
+        public IActionResult GetById([FromODataUri] int key)
         {
-            await _categoryRepository.AddCategoryAsync(category);
-            return CreatedAtAction(nameof(GetCategory), new { id = category.CategoryID }, category);
+            if (!User.Identity.IsAuthenticated)
+            {
+                return Unauthorized("You not loggin now");
+            }
+            var author = _categoryRepository.GetById(key);
+            if (author == null) return NotFound();
+            return Ok(author);
         }
 
-        // DELETE: api/Categories/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCategory(int id)
+        // POST: odata/Category
+        [HttpPost("Create")]
+        [Authorize(Roles = "Admin")]
+        public IActionResult Create([FromBody] CategoryDTO category)
         {
-            await _categoryRepository.DeleteCategoryAsync(id);
+            _categoryRepository.Add(category);
+            return Created($"odata/Category({category.CategoryID})", category);
+        }
 
-            return NoContent();
+        // PUT: odata/Category(1)
+        [Authorize(Roles = "Admin")]
+        [HttpPut("Update")]
+        public IActionResult Update(int key, [FromBody] CategoryDTO category)
+        {
+            if (!User.Identity.IsAuthenticated)
+            {
+                return Unauthorized("You not loggin now");
+            }
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (key != category.CategoryID) return BadRequest();
+
+            _categoryRepository.Update(category);
+            return Ok("Update Success");
+        }
+
+        // DELETE: odata/Category(1)
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("Delete")]
+        public IActionResult Remove(int key)
+        {
+
+            var author = _categoryRepository.GetById(key);
+            if (author == null) return NotFound();
+
+            _categoryRepository.Delete(key);
+            return Ok("Delete Success");
         }
     }
 }

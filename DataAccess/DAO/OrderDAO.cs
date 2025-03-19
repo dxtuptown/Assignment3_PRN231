@@ -1,4 +1,6 @@
-﻿using BusinessObject;
+﻿using AutoMapper;
+using BusinessObject;
+using DataAccess.DTO;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -11,30 +13,47 @@ namespace DataAccess.DAO
     public class OrderDAO
     {
         private readonly MyDBContext _context;
+        private readonly IMapper _mapper;
 
-        public OrderDAO(MyDBContext context)
+        public OrderDAO(MyDBContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
-        public async Task<List<Order>> GetOrdersAsync() => await _context.Orders.ToListAsync();
-        public async Task<Order> GetOrderByIdAsync(int id) => await _context.Orders.FirstOrDefaultAsync(c => c.OrderID == id);
-        public async Task AddOrderAsync(Order order)
+
+        public List<OrderDTO> GetAll()
         {
-            await _context.Orders.AddAsync(order);
-            await _context.SaveChangesAsync();
+            var categories = _context.Orders.Include(p => p.OrderDetails).ToList();
+            return _mapper.Map<List<OrderDTO>>(categories);
         }
-        public async Task UpdateOrderAsync(Order order)
+
+        public OrderDTO GetById(int orderId)
         {
-            _context.Orders.Update(order);
-            await _context.SaveChangesAsync();
+            var Order = _context.Orders.Find(orderId);
+            return _mapper.Map<OrderDTO>(Order);
         }
-        public async Task DeleteOrderAsync(int id)
+
+        public void Add(OrderDTO order)
         {
-            var order = await GetOrderByIdAsync(id);    
-            if (order != null)
+            var Order = _mapper.Map<Order>(order);
+            _context.Orders.Add(Order);
+            _context.SaveChanges();
+        }
+
+        public void Update(OrderDTO product)
+        {
+            var Product = _mapper.Map<Order>(product);
+            _context.Orders.Update(Product);
+            _context.SaveChanges();
+        }
+
+        public void Delete(int orderid)
+        {
+            var Order = _context.Orders.Find(orderid);
+            if (Order != null)
             {
-                _context.Orders.Remove(order);
-                await _context.SaveChangesAsync();
+                _context.Orders.Remove(Order);
+                _context.SaveChanges();
             }
         }
     }

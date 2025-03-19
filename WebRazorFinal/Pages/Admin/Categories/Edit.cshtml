@@ -1,0 +1,72 @@
+﻿@page
+@model WebRazorFinal.Pages.Admin.Categories.EditModel
+
+@{
+    ViewData["Title"] = "Edit";
+}
+
+<div class="container">
+    <h2 class="mt-3">Edit Category</h2>
+
+    <form id="categoryForm">
+        <input type="hidden" id="categoryID" />
+
+        <div class="mb-3">
+            <label class="form-label">Category Name:</label>
+            <input type="text" id="categoryName" class="form-control" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a href="/Admin/Categories/Index" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+<script>
+    $(document).ready(function () {
+        let id = new URLSearchParams(window.location.search).get("id");
+
+        if (!id) {
+            alert("Invalid category ID");
+            window.location.href = "/Admin/Categories";
+            return;
+        }
+
+        $.ajax({
+            url: `https://localhost:7111/odata/Category/get-by-id?key=${id}`,
+            type: "GET",
+            xhrFields: { withCredentials: true }, // Ensures cookies are sent
+            success: function (category) {
+                $("#categoryID").val(category.categoryID);
+                $("#categoryName").val(category.categoryName);
+            },
+            error: function () {
+                alert("Failed to load category");
+                window.location.href = "/Admin/Categories";
+            }
+        });
+    });
+
+    $("#categoryForm").submit(function (e) {
+        e.preventDefault();
+
+        let category = {
+            categoryID: $("#categoryID").val(),
+            categoryName: $("#categoryName").val()
+        };
+
+        $.ajax({
+            url: `https://localhost:7111/odata/Category/Update?key=${category.categoryID}`,
+            type: "PUT",
+            contentType: "application/json",
+            xhrFields: { withCredentials: true }, // Ensures cookies are sent
+            data: JSON.stringify(category),
+            success: function () {
+                alert("Category updated successfully!");
+                window.location.href = "/Admin/Categories/Index";
+            },
+            error: function () {
+                alert("Failed to update category");
+            }
+        });
+    });
+</script>

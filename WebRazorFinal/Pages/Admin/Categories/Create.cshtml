@@ -1,0 +1,52 @@
+﻿@page
+@model WebRazorFinal.Pages.Admin.Categories.CreateModel
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h2>Create Category</h2>
+<form id="createForm">
+    <div class="form-group">
+        <label>Category Name</label>
+        <input type="text" id="categoryName" class="form-control" required>
+    </div>
+    <button type="submit" class="btn btn-success">Create</button>
+</form>
+
+<script>
+    function getCookie(name) {
+        let cookies = document.cookie.split("; ");
+        for (let i = 0; i < cookies.length; i++) {
+            let [cookieName, cookieValue] = cookies[i].split("=");
+            if (cookieName === name) {
+                return decodeURIComponent(cookieValue);
+            }
+        }
+        return null;
+    }
+
+    $("#createForm").submit(function (e) {
+        e.preventDefault();
+
+        let categoryName = $("#categoryName").val();
+
+        $.ajax({
+            url: "https://localhost:7111/odata/Category/Create",
+            type: "POST",
+            contentType: "application/json",
+            xhrFields: {
+                withCredentials: true
+            },
+            data: JSON.stringify({ categoryName: categoryName }),
+            success: function () {
+                alert("Category created successfully!");
+                window.location.href = "/Admin/Categories/Index";
+            },
+            error: function (xhr) {
+                console.error("Error:", xhr.status, xhr.responseText);
+                alert("Failed to create category. Please check your authentication.");
+            }
+        });
+    });
+</script>

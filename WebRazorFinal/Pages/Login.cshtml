@@ -1,0 +1,63 @@
+﻿@page
+@model eWebShop.Pages.LoginModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<h2>Login</h2>
+
+<div id="login-form">
+    <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="email" class="form-control" required />
+    </div>
+    <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" class="form-control" required />
+    </div>
+    <button id="btnLogin" class="btn btn-primary">Login</button>
+    <p id="errorMessage" style="color: red; display: none;"></p>
+</div>
+
+@* <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> *@
+<script>
+    $(document).ready(function () {
+        $("#btnLogin").click(function () {
+            var email = $("#email").val();
+            var password = $("#password").val();
+
+            $.ajax({
+                url: "https://localhost:7111/api/auth/login",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ Email: email, Password: password }),
+                xhrFields: { withCredentials: true },
+                success: function (response) {
+                    document.cookie = "AuthToken=" + response.token + "; path=/";
+
+                    $.ajax({
+                        url: "https://localhost:7111/api/auth/current-user",
+                        type: "GET",
+                        xhrFields: { withCredentials: true },
+                        success: function (userResponse) {
+                            if (userResponse.success) {
+                                var roles = userResponse.user.roles;
+                                if (roles.includes("Admin")) {
+                                    window.location.href = "/Admin/Category";
+                                } else if (roles.includes("User")) {
+                                    window.location.href = "/User/Order";
+                                } else {
+                                    alert("Unauthorized role!");
+                                }
+                            }
+                        }
+                    });
+                },
+                error: function (xhr) {
+                    $("#errorMessage").text(xhr.responseJSON.message).show();
+                }
+            });
+        });
+    });
+</script>
+

@@ -10,11 +10,16 @@ using DataAccess;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
 using Microsoft.AspNetCore.OData.Query;
 using DataAccess.Repository;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using DataAccess.DTO;
+using Microsoft.AspNetCore.OData.Formatter;
 
 namespace WebAPI.Controllers
 {
     [Route("odata/[controller]")]
     [ApiController]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class OrdersController : ODataController
     {
         private readonly IOrderRepository _orderRepository;
@@ -24,60 +29,58 @@ namespace WebAPI.Controllers
             _orderRepository = orderRepository;
         }
 
-        // GET: api/Orders
-        [HttpGet]
-        [Route("get-all")]
+        // GET: odata/Category
+        [HttpGet("GetAll")]
         [EnableQuery]
-        public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
+        [Authorize(Roles = "Admin,User")]
+        public IActionResult GetAll()
         {
-            return Ok(await _orderRepository.GetOrdersAsync());
+            return Ok(_orderRepository.GetAll());
         }
 
-        // GET: api/Orders/5
-        [HttpGet("{id}")]
         [EnableQuery]
-        public async Task<ActionResult<Order>> GetOrder(int id)
+        [HttpGet("get-by-id")] // GET /odata/Category(1)
+        [Authorize(Roles = "Admin,User")]
+        public IActionResult GetById([FromODataUri] int key)
         {
-            var order = await _orderRepository.GetOrderByIdAsync(id);
-
-            if (order == null)
-            {
-                return NotFound();
-            }
-
-            return order;
+            var author = _orderRepository.GetById(key);
+            if (author == null) return NotFound();
+            return Ok(author);
         }
 
-        // PUT: api/Orders/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateOrder(int id, [FromBody] Order order)
+        // POST: odata/Category
+        [HttpPost("Create")]
+        [Authorize(Roles = "Admin,User")]
+        public IActionResult Create([FromBody] OrderDTO order)
         {
-            if (id != order.OrderID)
-            {
-                return BadRequest();
-            }
-
-            await _orderRepository.UpdateOrderAsync(order);
-
-            return NoContent();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            _orderRepository.Add(order);
+            // Use the standard Created method
+            return Created($"odata/Order({order.OrderID})", order);
         }
 
-        // POST: api/Orders
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Order>> AddOrder([FromBody] Order order)
+        // PUT: odata/Category(1)
+        [HttpPut("Update")]
+        [Authorize(Roles = "Admin,User")]
+        public IActionResult Update(int key, [FromBody] OrderDTO order)
         {
-            await _orderRepository.AddOrderAsync(order);
-            return CreatedAtAction(nameof(GetOrder), new { id = order.OrderID }, order);
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (key != order.OrderID) return BadRequest();
+
+            _orderRepository.Update(order);
+            return Ok("Update Success");
         }
 
-        // DELETE: api/Orders/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteOrder(int id)
+        // DELETE: odata/Category(1)
+        [HttpDelete("Delete")]
+        [Authorize(Roles = "Admin,User")]
+        public IActionResult Remove(int key)
         {
-            await _orderRepository.DeleteOrderAsync(id);
-            return NoContent();
+            var author = _orderRepository.GetById(key);
+            if (author == null) return NotFound();
+
+            _orderRepository.Delete(key);
+            return Ok("Delete Success");
         }
 
     }

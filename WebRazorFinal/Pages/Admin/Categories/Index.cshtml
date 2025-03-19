@@ -1,0 +1,62 @@
+﻿@page
+@model WebRazorFinal.Pages.Admin.Categories.IndexModel
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h2>Category List</h2>
+<a asp-page="Create" class="btn btn-primary">Create New Category</a>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Category ID</th>
+            <th>Category Name</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="categoryTableBody"></tbody>
+</table>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function () {
+        loadProducts();
+    });
+
+    function loadProducts() {
+        $.ajax({
+            url: "https://localhost:7111/odata/Category/GetAll",
+            type: "GET",
+            xhrFields: {
+                withCredentials: true
+            },
+            success: function (data) {
+                console.log("Full API Response:", data);
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    console.error("Unexpected API response structure:", data);
+                    alert("No categories found.");
+                    return;
+                }
+
+                let rows = "";
+                data.forEach(category => {
+                    rows += `<tr>
+                        <td>${category.categoryID}</td>
+                        <td>${category.categoryName}</td>
+                        <td>
+                            <a href='/Admin/Categories/Edit?id=${category.categoryID}'>Edit</a> |
+                            <a href='/Admin/Categories/Delete?id=${category.categoryID}'>Delete</a>
+                        </td>
+                    </tr>`;
+                });
+
+                $("#categoryTableBody").html(rows);
+            },
+            error: function (xhr) {
+                console.error("Error loading categories:", xhr.status, xhr.responseText);
+                alert("Failed to load categories. Please check your login session.");
+            }
+        });
+</script>

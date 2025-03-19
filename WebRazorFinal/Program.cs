@@ -4,26 +4,15 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Net.Http.Headers;
-using WebRazorFinal.Services;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddDbContext<MyDBContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
-{
-    options.SignIn.RequireConfirmedAccount = false;
-})
-.AddEntityFrameworkStores<MyDBContext>() // QUAN TRỌNG: Phải có dòng này!
-.AddDefaultTokenProviders();
 
-builder.Services.AddScoped<UserManager<AppUser>>(); // Thêm dòng này
-builder.Services.AddScoped<SignInManager<AppUser>>(); // Thêm dòng này
-
-builder.Services.AddScoped<ProductService>();
-builder.Services.AddScoped<OrderService>();
-builder.Services.AddScoped<CategoryService>();
+//builder.Services.AddScoped<ProductService>();
+//builder.Services.AddScoped<OrderService>();
+//builder.Services.AddScoped<CategoryService>();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -32,13 +21,20 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-builder.Services.AddHttpClient("WebAPI", client =>
-{
-    client.BaseAddress = new Uri("https://localhost:7111/odata/"); // Thay URL bằng API của bạn
-    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-});
+//builder.Services.AddHttpClient("WebAPI", client =>
+//{
+//    client.BaseAddress = new Uri("https://localhost:7111/odata/"); // Thay URL bằng API của bạn
+//    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+//});
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddRazorPages();
-
+builder.Services.AddControllersWithViews();
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Chỉ gửi cookie qua HTTPS
+    options.Cookie.SameSite = SameSiteMode.Strict;
+});
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -55,6 +51,7 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 app.UseSession();
 app.MapRazorPages();
 

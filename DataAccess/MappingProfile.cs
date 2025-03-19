@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using BusinessObject;
+using DataAccess.DTO;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -16,7 +17,7 @@ namespace DataAccess
         {
             CreateMap<Category, Category>().ReverseMap();
             CreateMap<Order, Order>().ReverseMap();
-            CreateMap<OrderDetail, OrderDetail>().ReverseMap();
+            CreateMap<AuthDTO, AppUser>().ReverseMap();
             CreateMap<Product, Product>().ReverseMap();
         }
     }

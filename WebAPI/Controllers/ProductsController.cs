@@ -10,11 +10,16 @@ using DataAccess;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
 using Microsoft.AspNetCore.OData.Query;
 using DataAccess.Repository;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using DataAccess.DTO;
+using Microsoft.AspNetCore.OData.Formatter;
 
 namespace WebAPI.Controllers
 {
     [Route("odata/[controller]")]
     [ApiController]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class ProductsController : ODataController
     {
         private readonly IProductRepository _productRepository;
@@ -24,72 +29,59 @@ namespace WebAPI.Controllers
             _productRepository = productRepository;
         }
 
-        // GET: api/Products
-        [HttpGet]
-        [Route("get-all")]
+        // GET: odata/Product
+        [HttpGet("GetAll")]
+        [Authorize(Roles = "Admin")]
         [EnableQuery]
-        public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
+        public IActionResult GetAll()
         {
-            return Ok(await _productRepository.GetProductsAsync());
+            return Ok(_productRepository.GetAll());
         }
 
-        // GET: api/Products/5
-        [HttpGet("{id}")]
         [EnableQuery]
-        public async Task<ActionResult<Product>> GetProduct(int id)
+        [Authorize(Roles = "Admin")]
+        [HttpGet("get-by-id")] // GET /odata/Product(1)
+        public IActionResult GetById([FromODataUri] int key)
         {
-            var product = await _productRepository.GetProductByIdAsync(id);
-
-            if (product == null)
-            {
-                return NotFound();
-            }
-
-            return product;
+            var author = _productRepository.GetById(key);
+            if (author == null) return NotFound();
+            return Ok(author);
         }
 
-        // PUT: api/Products/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProduct(int id,[FromBody] Product product)
+        // POST: odata/Product
+        [HttpPost("Create")]
+        [Authorize(Roles = "Admin")]
+        public IActionResult Create([FromBody] ProductDTO product)
         {
-            if (id != product.ProductID)
-            {
-                return BadRequest();
-            }
-
-            await _productRepository.UpdateProductAsync(product);
-
-            return NoContent();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            product.ProductID = 0;
+            _productRepository.Add(product);
+            // Use the standard Created method
+            return Created($"odata/Authors({product.ProductID})", product);
         }
 
-        // POST: api/Products
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Product>> AddProduct([FromBody] Product product)
+        // PUT: odata/Product(1)
+        [Authorize(Roles = "Admin")]
+        [HttpPut("Update")]
+        public IActionResult Update(int key, [FromBody] ProductDTO product)
         {
-            await _productRepository.AddProductAsync(product);
-            return CreatedAtAction(nameof(GetProduct), new { id = product.ProductID }, product);
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+
+            _productRepository.Update(product);
+            return Ok("Update Success");
         }
 
-        // DELETE: api/Products/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProduct(int id)
+        // DELETE: odata/Product(1)
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("Delete")]
+        public IActionResult Remove(int key)
         {
-            await _productRepository.DeleteProductAsync(id);
-            return NoContent();
-        }
+            var author = _productRepository.GetById(key);
+            if (author == null) return NotFound();
 
-        [HttpGet("by-category/{categoryId}")]
-        [EnableQuery]
-        public async Task<IActionResult> GetProductsByCategory(int categoryId)
-        {
-            var products = await _productRepository.GetProductsByCategoryAsync(categoryId);
-            if (products == null || products.Count == 0)
-            {
-                return NotFound(new { message = "No products found for this category." });
-            }
-            return Ok(products);
+            _productRepository.Delete(key);
+            return Ok("Delete Success");
         }
     }
 }

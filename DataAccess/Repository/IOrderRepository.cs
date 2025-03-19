@@ -1,4 +1,5 @@
 ﻿using BusinessObject;
+using DataAccess.DTO;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,12 +8,7 @@ using System.Threading.Tasks;
 
 namespace DataAccess.Repository
 {
-    public interface IOrderRepository
+    public interface IOrderRepository : IRepository<OrderDTO>
     {
-        Task<List<Order>> GetOrdersAsync();
-        Task<Order> GetOrderByIdAsync(int id);
-        Task AddOrderAsync(Order order);
-        Task UpdateOrderAsync(Order order);
-        Task DeleteOrderAsync(int id);
     }
 }

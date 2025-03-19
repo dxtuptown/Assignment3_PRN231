@@ -1,4 +1,5 @@
 ﻿using BusinessObject;
+using DataAccess.DTO;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,12 +8,7 @@ using System.Threading.Tasks;
 
 namespace DataAccess.Repository
 {
-    public interface ICategoryRepository
+    public interface ICategoryRepository : IRepository<CategoryDTO>
     {
-        Task<List<Category>> GetCategoriesAsync();
-        Task<Category> GetCategoryByIdAsync(int id);
-        Task AddCategoryAsync(Category category);
-        Task UpdateCategoryAsync(Category category);
-        Task DeleteCategoryAsync(int id);
     }
 }

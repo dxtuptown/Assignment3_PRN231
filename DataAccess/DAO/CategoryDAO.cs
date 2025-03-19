@@ -1,4 +1,6 @@
-﻿using BusinessObject;
+﻿using AutoMapper;
+using BusinessObject;
+using DataAccess.DTO;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -11,30 +13,47 @@ namespace DataAccess.DAO
     public class CategoryDAO
     {
         private readonly MyDBContext _context;
+        private readonly IMapper _mapper;
 
-        public CategoryDAO(MyDBContext context)
+        public CategoryDAO(MyDBContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
-        public async Task<List<Category>> GetCategoriesAsync() => await _context.Categories.ToListAsync();
-        public async Task<Category> GetCategoryByIdAsync(int id) => await _context.Categories.FirstOrDefaultAsync(c => c.CategoryID == id);
-        public async Task AddCategoryAsync(Category category)
+
+        public List<CategoryDTO> GetAll()
         {
-            await _context.Categories.AddAsync(category);
-            await _context.SaveChangesAsync();
+            var categories = _context.Categories.ToList();
+            return _mapper.Map<List<CategoryDTO>>(categories);
         }
-        public async Task UpdateCategoryAsync(Category category)
+
+        public CategoryDTO GetById(int categoryId)
         {
+            var category = _context.Categories.Find(categoryId);
+            return _mapper.Map<CategoryDTO>(category);
+        }
+
+        public void Add(CategoryDTO categoryDto)
+        {
+            var category = _mapper.Map<Category>(categoryDto);
+            _context.Categories.Add(category);
+            _context.SaveChanges();
+        }
+
+        public void Update(CategoryDTO categoryDto)
+        {
+            var category = _mapper.Map<Category>(categoryDto);
             _context.Categories.Update(category);
-            await _context.SaveChangesAsync();
+            _context.SaveChanges();
         }
-        public async Task DeleteCategoryAsync(int id)
+
+        public void Delete(int categoryId)
         {
-            var category = await GetCategoryByIdAsync(id);
+            var category = _context.Categories.Find(categoryId);
             if (category != null)
             {
                 _context.Categories.Remove(category);
-                await _context.SaveChangesAsync();
+                _context.SaveChanges();
             }
         }
     }
